@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/PramaAditya/ptz-controller/releases/latest">
-    <img src="https://img.shields.io/github/v/release/PramaAditya/ptz-controller?style=flat-square&label=download&color=2563EB" alt="Latest Release">
+    <img src="https://img.shields.io/github/v/release/PramaAditya/ptz-controller?style=flat-square&label=download&color=2563EB&sort=semver" alt="Latest Release">
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11%20(64--bit)-0078D4?style=flat-square" alt="Windows 10/11 64-bit">
   <img src="https://img.shields.io/badge/OBS%20%2F%20Zoom%20%2F%20Meet-No%20Camera%20Lock-22C55E?style=flat-square" alt="No Camera Lock">
