@@ -1,0 +1,46 @@
+[package]
+name = "ptz-controller"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+description = "Native Windows GUI remote for USB UVC PTZ cameras with OBS-safe live preview"
+license = "MIT"
+repository = "https://github.com/PramaAditya/ptz-controller"
+
+[dependencies]
+# UI core (matched to fastframe v0.17.1)
+egui = "0.36.2"
+egui_extras = { version = "0.36.2", default-features = false, features = ["svg"] }
+eframe = { version = "0.36.2", default-features = false, features = ["glow"] }
+
+# fastframe MVP crates (pin all to identical tag)
+fastframe-fonts = { git = "https://github.com/crmne/fastframe", tag = "v0.17.1" }
+fastframe-text  = { git = "https://github.com/crmne/fastframe", tag = "v0.17.1" }
+fastframe-icons = { git = "https://github.com/crmne/fastframe", tag = "v0.17.1" }
+fastframe-theme = { git = "https://github.com/crmne/fastframe", tag = "v0.17.1" }
+fastframe-log   = { git = "https://github.com/crmne/fastframe", tag = "v0.17.1" }
+
+# Windows COM / DirectShow + WinRT Shared FrameServer Preview
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.60", features = [
+    "Devices_Enumeration",
+    "Foundation",
+    "Foundation_Collections",
+    "Graphics_Imaging",
+    "Media_Capture",
+    "Media_Capture_Frames",
+    "Media_MediaProperties",
+    "Win32_Foundation",
+    "Win32_Media_DirectShow",
+    "Win32_Media_KernelStreaming",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Ole",
+    "Win32_System_Variant",
+    "Win32_System_WinRT",
+] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+thiserror = "2"
