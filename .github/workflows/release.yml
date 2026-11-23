@@ -1,0 +1,143 @@
+name: Release (Windows)
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Semantic version tag (e.g. v0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Build Windows Installer & Portable ZIP
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve release version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $tag = "${{ inputs.tag }}"
+          } else {
+            $tag = "${{ github.ref_name }}"
+          }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "Invalid semantic version tag '$tag'. Expected format: vMAJOR.MINOR.PATCH (e.g. v0.1.0)"
+          }
+          $semver = $tag.Substring(1)
+          $isPrerelease = ($semver -like "*-*").ToString().ToLower()
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "semver=$semver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "prerelease=$isPrerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Building release $tag (semver=$semver, prerelease=$isPrerelease)"
+
+      - name: Install Rust 1.98.0 toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Typecheck & build release binary
+        shell: pwsh
+        run: |
+          cargo check --release --locked
+          cargo build --release --locked
+
+      - name: Ensure Inno Setup (ISCC) is available
+        id: inno
+        shell: pwsh
+        run: |
+          $candidates = @(
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe"
+          )
+          $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            $cmd = Get-Command iscc -ErrorAction SilentlyContinue
+            if ($cmd) { $iscc = $cmd.Source }
+          }
+          if (-not $iscc) {
+            Write-Host "Installing Inno Setup 6 via Chocolatey..."
+            choco install innosetup -y --no-progress
+            $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) {
+            throw "ISCC.exe not found after installation."
+          }
+          "iscc=$iscc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Using ISCC at: $iscc"
+
+      - name: Build Windows Installer & Portable ZIP
+        shell: pwsh
+        run: |
+          $semver = "${{ steps.version.outputs.semver }}"
+          $tag = "${{ steps.version.outputs.tag }}"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          # 1. Build Inno Setup installer
+          & "${{ steps.inno.outputs.iscc }}" "/DAppVersion=$semver" "/DOutputDir=..\dist" "installer\ptz-controller.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
+
+          # 2. Build Portable ZIP
+          $stage = "dist\portable-stage"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "target\release\ptz-controller.exe" "$stage\"
+          Copy-Item "LICENSE" "$stage\"
+          Copy-Item "README.md" "$stage\"
+          $zipPath = "dist\PTZ-Controller-$tag-windows-x64-portable.zip"
+          Compress-Archive -Path "$stage\*" -DestinationPath $zipPath -Force
+          Remove-Item -Recurse -Force $stage
+
+          # 3. Generate SHA256SUMS.txt
+          $artifacts = Get-ChildItem "dist\*" -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" }
+          $sums = foreach ($file in $artifacts) {
+            $hash = (Get-FileHash -Algorithm SHA256 -Path $file.FullName).Hash.ToLower()
+            "$hash  $($file.Name)"
+          }
+          $sums | Set-Content -Path "dist\SHA256SUMS.txt" -Encoding ascii
+
+          Get-ChildItem dist | Format-Table Name, Length
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $semver = "${{ steps.version.outputs.semver }}"
+          $installer = "dist\PTZ-Controller-Setup-v$semver-windows-x64.exe"
+          $portable = "dist\PTZ-Controller-$tag-windows-x64-portable.zip"
+          $checksums = "dist\SHA256SUMS.txt"
+
+          $notes = @"
+          ## Downloads (Windows 10/11 x64)
+
+          - **Installer (Recommended):** ``PTZ-Controller-Setup-v$semver-windows-x64.exe`` — installs cleanly to Start Menu with uninstaller (no admin required).
+          - **Portable ZIP:** ``PTZ-Controller-$tag-windows-x64-portable.zip`` — extract and run ``ptz-controller.exe`` directly.
+          "@
+
+          $ghArgs = @(
+            "release", "create", $tag,
+            $installer, $portable, $checksums,
+            "--title", "PTZ Controller $tag",
+            "--notes", $notes,
+            "--generate-notes"
+          )
+          if ("${{ steps.version.outputs.prerelease }}" -eq "true") {
+            $ghArgs += "--prerelease"
+          }
+
+          gh @ghArgs

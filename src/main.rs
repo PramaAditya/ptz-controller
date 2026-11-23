@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod app;
 mod camera;
 mod config;
@@ -6,6 +8,8 @@ mod theme;
 mod ui;
 
 use std::process::ExitCode;
+
+const APP_ICON_PNG: &[u8] = include_bytes!("../assets/icon.png");
 
 fn main() -> ExitCode {
     let _ = fastframe_log::Logging::new("ptz-controller", env!("CARGO_PKG_VERSION"))
@@ -17,11 +21,17 @@ fn main() -> ExitCode {
         return code;
     }
 
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_title("PTZ Controller")
+        .with_inner_size([380.0, 820.0])
+        .with_min_inner_size([320.0, 460.0]);
+
+    if let Some(icon) = load_app_icon() {
+        viewport = viewport.with_icon(icon);
+    }
+
     let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title("PTZ Controller")
-            .with_inner_size([380.0, 790.0])
-            .with_min_inner_size([320.0, 460.0]),
+        viewport,
         ..Default::default()
     };
 
@@ -36,6 +46,17 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn load_app_icon() -> Option<egui::IconData> {
+    let img = image::load_from_memory_with_format(APP_ICON_PNG, image::ImageFormat::Png).ok()?;
+    let rgba = img.into_rgba8();
+    let (width, height) = rgba.dimensions();
+    Some(egui::IconData {
+        rgba: rgba.into_raw(),
+        width,
+        height,
+    })
 }
 
 fn handle_cli_args(args: &[String]) -> Option<ExitCode> {

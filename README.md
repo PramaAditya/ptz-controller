@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.png" width="88" alt="PTZ Controller icon">
+</p>
+
 <h1 align="center">PTZ Controller</h1>
 
 <p align="center">
@@ -53,7 +57,7 @@ Most webcam utilities either take exclusive camera control (causing a black scre
 
 ## Quick Start
 
-Requires **Windows 10/11** and **Rust 1.98+** (pinned in [rust-toolchain.toml](rust-toolchain.toml)).
+Download the Windows installer (`PTZ-Controller-Setup-v*-windows-x64.exe`) or portable ZIP from [GitHub Releases](https://github.com/PramaAditya/ptz-controller/releases/latest), or build from source on **Windows 10/11** with **Rust 1.98+** (pinned in [rust-toolchain.toml](rust-toolchain.toml)):
 
 ```powershell
 git clone https://github.com/PramaAditya/ptz-controller.git
@@ -110,5 +114,5 @@ Built with [egui](https://github.com/emilk/egui), [fastframe](https://github.com
 </p>
 
 <p align="center">
-  <sub>MIT License © 2026 PramaAditya</sub>
+  <sub>Made by <a href="https://github.com/PramaAditya">Prama</a> · MIT License</sub>
 </p>
