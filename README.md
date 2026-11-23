@@ -35,6 +35,7 @@
 1. Open the **[Latest Release](https://github.com/PramaAditya/ptz-controller/releases/latest)** page.
 2. Download **`PTZ-Controller-Setup-v*-windows-x64.exe`** *(or the Portable `.zip` if you prefer not to install)*.
 3. Run the installer — **no administrator permission required**.
+   - *First-time SmartScreen notice:* Because this is a free open-source build without a paid code-signing certificate yet, Windows may show **"Windows protected your PC"**. Click **More info → Run anyway** (you can verify the file against `SHA256SUMS.txt` or build from source below).
 4. Open **PTZ Controller** from your Start Menu. Your USB PTZ camera is detected automatically.
 
 > **Using OBS, Zoom, Teams, or Meet at the same time?**
